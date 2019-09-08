@@ -2,7 +2,6 @@ import argparse
 from textwrap import dedent
 from uuid import uuid4
 from flask import Flask, jsonify, request
-
 from blockchain import Blockchain
 
 parser = argparse.ArgumentParser(description="blockchain example")
@@ -10,7 +9,6 @@ parser.add_argument('--port', type=int, default=5000)
 args = parser.parse_args()
 
 app = Flask(__name__)
-
 node_identifier = str(uuid4()).replace('-', '')
 
 blockchain = Blockchain()
