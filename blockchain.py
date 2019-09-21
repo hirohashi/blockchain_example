@@ -63,7 +63,7 @@ class Blockchain(object):
     def __init__(self):
         self._chain = []
         self._current_transactions = []
-        self._nodes = set()
+        self._nodes = {}
         self.new_block(previous_hash=1, proof=100)
 
     def new_block(self, proof: int, previous_hash: str = None):
@@ -86,14 +86,20 @@ class Blockchain(object):
 
     def register_node(self, address):
         parsed_url = urlparse(address)
-        self._nodes.add(parsed_url.netloc)
+        if len(parsed_url.netloc) < 1:
+            raise Exception("URL is invalid!")
+        response = requests.get(f'http://{parsed_url.netloc}/uuid')
+        if response.status_code == 200:
+            uuid = response.json()['uuid']
+            self._nodes[parsed_url.netloc] = uuid
+        else:
+            raise Exception("GET uuid failed")
 
     @staticmethod
     def hash(block) -> str:
         block_string = json.dumps(dict(block), sort_keys=True).encode()
         return hashlib.sha256(block_string).hexdigest()
 
-    
     def proof_of_work(self, last_proof) -> int:
         proof = 0
         while self.valid_proof(last_proof, proof) is False:
@@ -137,7 +143,7 @@ class Blockchain(object):
     def valid_proof(last_proof: "Block", proof: int) -> bool:
         guess = f'{last_proof}{proof}'.encode()
         guess_hash = hashlib.sha256(guess).hexdigest()
-        return guess_hash[:4] == "0000"
+        return guess_hash[:5] == "00000"
 
     @property
     def last_block(self) -> 'Block':

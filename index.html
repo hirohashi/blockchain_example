@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<head>
+
+<style>
+table {
+  border-collapse: collapse;
+}
+table th, table td {
+  border: solid 1px black;
+  padding: 5px;
+}
+
+</style>
+<script>
+let url = 'http://localhost:5000';
+let uuid = "";
+let chains = [];
+
+let HttpClient = {
+  get: function(url, param, callback) {
+    var xhr = new XMLHttpRequest();
+    xhr.onreadystatechange = function() {
+      // done & OK
+      if (xhr.readyState == 4 && xhr.status == 200)
+        callback(xhr.responseText);
+    }
+    xhr.open( "GET", url, true );            
+    xhr.send( param );
+  },
+  post: function(url, data, callback) {
+    var xhr = new XMLHttpRequest();
+    xhr.onreadystatechange = function() {
+      // done & created
+      console.log(xhr.responseText);
+      if (xhr.readyState == 4 && xhr.status == 200)
+        callback(xhr.responseText);
+    }
+    xhr.open( "POST", url, true );   
+    xhr.setRequestHeader("Content-Type", "application/json");         
+    xhr.send(JSON.stringify(data));
+  }
+}
+
+// 状態を更新して描画に反映させる
+function refresh() {
+  url = document.getElementById('myurl_text').value;
+  HttpClient.get(`${url}/chain`, null, (result) => {
+    let obj = JSON.parse(result);
+    console.log(obj);
+  });
+  HttpClient.get(`${url}/uuid`, null, (result) => {
+    let obj = JSON.parse(result);
+    const uuidTextArea = document.getElementById('uuid');
+    uuidTextArea.innerText = obj.uuid;
+    uuid = obj.uuid;
+  });
+  HttpClient.get(`${url}/nodes`, null, (result) => {
+    const nodes = JSON.parse(result);
+    const table = document.getElementById('nodes_table')
+    while (table.rows.length > 0) table.deleteRow(0);
+    for(let addr in nodes) {
+      let row = table.insertRow();
+      let cell1 = row.insertCell(-1);
+      let cell2 = row.insertCell(-1);
+      cell1.innerText = addr;
+      cell2.innerText = nodes[addr];
+    }
+  });
+}
+
+// 新しいトランザクションを作成する
+function makeTransaction() {
+  const sender = uuid;
+  const recipient = document.getElementById('recipient_text').value;
+  const amount = document.getElementById('amount_text').value;
+  const data = {
+    sender: sender,
+    recipient: recipient,
+    amount: amount,
+  };
+  HttpClient.post(`${url}/transactions/new`, data, (result) => {
+    const obj = JSON.parse(result);
+    console.log(obj);
+  });
+}
+
+// 新しいノードを登録する
+function registerNode() {
+  const node = document.getElementById('node_text').value;
+  const nodes = new Array(node);
+  const data = {
+    nodes: nodes,
+  };
+  HttpClient.post(`${url}/nodes/register`, data, (result) => {
+    const obj = JSON.parse(result);
+    console.log(obj);
+  });
+}
+
+// マイニングをする
+function mining() {
+  HttpClient.get(`${url}/mine`, null, (result) => {
+    console.log(JSON.parse(result));
+  });
+}
+
+// ノード間でブロックチェーンの同期を行う
+function sync_block() {
+  HttpClient.get(`${url}/nodes/resolve`, null, (result) => {
+    console.log(JSON.parse(result));
+  });
+}
+
+</script>
+</head>
+<body>
+  my uuid is <span id="uuid"></span><br>
+  my url is <input type="text" id="myurl_text">
+  <p>ノード一覧</p>
+  <table id="nodes_table"></table>
+  <input type="button" id="refresh" value="更新" onclick="refresh()">
+  <p>ノードの追加</p>
+  URL: <input type="text" id="node_text"><br>
+  <input type="button" id="send_node" value="送信" onclick="registerNode()">
+  <p>トランザクションの追加</p>
+  送信先: <input type="text" id="recipient_text"><br>
+  送信量: <input type="text" id="amount_text"><br>
+  <input type="button" id="send_transaction" value="送信" onclick="makeTransaction()">
+  <p>マイニング</p>
+  <input type="button" id="send_mining" value="マイニング" onclick="mining()">
+  <p>ブロックチェーンの同期</p>
+  <input type="button" id="send_resolve" value="同期" onclick="sync_block()">
+
+  <div id="blockchain"></div>
+</body>
+</html>

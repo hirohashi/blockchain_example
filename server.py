@@ -2,6 +2,7 @@ import argparse
 from textwrap import dedent
 from uuid import uuid4
 from flask import Flask, jsonify, request
+from flask_cors import CORS
 from blockchain import Blockchain
 
 parser = argparse.ArgumentParser(description="blockchain example")
@@ -9,9 +10,14 @@ parser.add_argument('--port', type=int, default=5000)
 args = parser.parse_args()
 
 app = Flask(__name__)
+CORS(app)
 node_identifier = str(uuid4()).replace('-', '')
 
 blockchain = Blockchain()
+
+@app.route('/uuid', methods=['GET'])
+def getUuid():
+    return jsonify({'uuid': node_identifier}), 200
 
 @app.route('/transactions/new', methods=['POST'])
 def new_transactions():
@@ -19,9 +25,13 @@ def new_transactions():
     required = ['sender', 'recipient', 'amount']
     if not all(k in values for k in required):
         return 'Missing values', 400
-    index = blockchain.new_transaction(values['sender'], values['recipient'], values['amount'])
+    index = blockchain.new_transaction(values['sender'], values['recipient'], int(values['amount']))
     response = {'message': f'transaction append {index} into block'}
-    return jsonify(response), 201
+    return jsonify(response), 200
+
+@app.route('/nodes', methods=['GET'])
+def get_nodes():
+    return jsonify(blockchain.nodes), 200
 
 @app.route('/nodes/register', methods=['POST'])
 def register_node():
@@ -30,12 +40,16 @@ def register_node():
     if nodes is None:
         return "error: invalid node", 400
     for node in nodes:
-        blockchain.register_node(node)
+        try:
+            blockchain.register_node(node)
+        except Exception as err:
+            print(err)
+            return "error occured", 400
     response = {
         'message': 'new node registerd',
-        'total_nodes': list(blockchain.nodes)
+        'total_nodes': blockchain.nodes
     }
-    return jsonify(response), 201
+    return jsonify(response), 200
 
 @app.route('/nodes/resolve', methods=['GET'])
 def consensus():
@@ -81,4 +95,5 @@ def full_chain():
     return jsonify(response), 200
 
 if __name__ == '__main__':
+    print(node_identifier)
     app.run(host='0.0.0.0', port=args.port)
