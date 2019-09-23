@@ -18,6 +18,9 @@ class Block(object):
         self.previous_hash = previous_hash
 
     def __iter__(self):
+        """
+        transactionsの辞書を返すためにこれを作った
+        """
         yield ("index", self.index)
         yield ("timestamp", self.timestamp)
         yield ("transactions", list(map(lambda t: t.__dict__, self.transactions)))
@@ -30,11 +33,6 @@ class Transaction(object):
         self.recipient = recipient
         self.amount = amount
 
-    def __iter__(self):
-        yield ("sender", self.sender)
-        yield ("recipient", self.recipient)
-        yield ("amount", self.amount)
-
 class Blockchain(object):
     def __init__(self):
         self.chain = []
@@ -42,34 +40,61 @@ class Blockchain(object):
         self.nodes = {}
         self.new_block(previous_hash=1, proof=100)
 
+
     def new_block(self, proof: int, previous_hash: str = None):
+        """
+        新しいブロックを作成して追加する
+        :param proof: int
+        :previous_hash: 以前のハッシュ値
+        """
         block = Block (
             len(self.chain) + 1,
             time(),
-            copy.deepcopy(self.current_transactions),
+            self.current_transactions,
             proof,
             previous_hash or self.hash(self.chain[-1])
         )
-        self.current_transations = []
+        self.current_transactions = []
         self.chain.append(block)
         return block
 
     def new_transaction(self, sender: str, recipient: str, amount: int) -> int:
+        """
+        新しいトランザクションを作成し追加する
+        :param sender: int
+        :param recipient: str
+        :param amount: int
+        :return: int 作成したトランザクションを含むブロックのアドレス
+        """
         self.current_transactions.append(
             Transaction(sender, recipient, amount)
         )
         return self.last_block.index + 1
 
     def register_node(self, address):
+        """
+        ノードを追加する
+        失敗したら例外を返す
+        :param address
+        """
         parsed_url = urlparse(address)
+        self.nodes[parsed_url.netloc] = {}
         if len(parsed_url.netloc) < 1:
             raise Exception("URL is invalid!")
+        # uuidを取得
         response = requests.get(f'http://{parsed_url.netloc}/uuid')
         if response.status_code == 200:
             uuid = response.json()['uuid']
-            self.nodes[parsed_url.netloc] = uuid
+            self.nodes[parsed_url.netloc]['uuid'] = uuid
         else:
             raise Exception("GET uuid failed")
+        # publickeyを取得
+        response = requests.get(f'http://{parsed_url.netloc}/publickey')
+        if response.status_code == 200:
+            key = response.json()['key']
+            self.nodes[parsed_url.netloc]['key'] = key
+        else:
+            raise Exception("GET pubkey failed")
 
     @staticmethod
     def hash(block) -> str:
@@ -77,12 +102,22 @@ class Blockchain(object):
         return hashlib.sha256(block_string).hexdigest()
 
     def proof_of_work(self, last_proof: int) -> int:
+        """
+        PoWを行い，proofを返す
+        :param last_proof: int 最後のブロックのproof
+        :return:int 計算したproofの値
+        """
         proof = 0
         while self.valid_proof(last_proof, proof) is False:
             proof += 1
         return proof
 
-    def valid_chain(self, chain) -> bool:
+    def valid_chain(self, chain: List["Block"]) -> bool:
+        """
+        ブロックチェーンが正しければtrue
+        :param chain: List[Block]
+        :return: bool
+        """
         last_block = chain[0]
         current_index = 1
         while current_index < len(chain):
@@ -102,6 +137,9 @@ class Blockchain(object):
         return True
 
     def resolve_conflicts(self):
+        """
+        他のノードとのコンフリクトを解消する
+        """
         neighbours = self.nodes
         new_chain = None
         max_length = len(self.chain)
@@ -128,6 +166,12 @@ class Blockchain(object):
 
     @staticmethod
     def valid_proof(last_proof: int, proof: int) -> bool:
+        """
+        proofの計算を行い，正しければtrueを返す
+        :param last_proof: int
+        :param proof: int
+        :return bool
+        """
         guess = f'{last_proof}{proof}'.encode()
         guess_hash = hashlib.sha256(guess).hexdigest()
         return guess_hash[:5] == "00000"

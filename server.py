@@ -7,17 +7,25 @@ from blockchain import Blockchain
 
 parser = argparse.ArgumentParser(description="blockchain example")
 parser.add_argument('--port', type=int, default=5000)
+parser.add_argument('--key', type=str, default="blockchain_rsa")
 args = parser.parse_args()
 
 app = Flask(__name__)
 CORS(app)
 node_identifier = str(uuid4()).replace('-', '')
 
+privatekey = open(args.key).read()
+publickey = open(args.key + '.pub').read()
+
 blockchain = Blockchain()
 
 @app.route('/uuid', methods=['GET'])
 def getUuid():
     return jsonify({'uuid': node_identifier}), 200
+
+@app.route('/publickey', methods=['GET'])
+def getpubkey():
+    return jsonify({'key': publickey}), 200
 
 @app.route('/transactions/new', methods=['POST'])
 def new_transactions():

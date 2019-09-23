@@ -2,12 +2,65 @@
 <head>
 
 <style>
+* {
+  padding: 0;
+  margin: 0;
+}
+body {
+  width: 1000px;
+  margin: 0 auto;
+}
+input[type=button] {
+  background-color: #77aacc;
+  border: none;
+  border-radius: 5px;
+  color: white;
+  padding: 10px 20px;
+  text-decoration: none;
+  margin: 4px 2px;
+  cursor: pointer;
+}
 table {
+  word-break: break-all;
   border-collapse: collapse;
 }
 table th, table td {
   border: solid 1px black;
   padding: 5px;
+  max-width: 300px;
+}
+.operation {
+  border: 1px #333 solid;
+  border-radius: 5px;
+  margin: 5px;
+  padding: 5px;
+}
+.block {
+  width: 300px;
+  float: left;
+  word-break: break-all;
+  border: 1px #000 solid;
+  border-radius: 5px;
+  margin: 5px;
+  padding: 5px;
+}
+
+.block p{
+  max-width: 300px;
+  margin: 5px;
+}
+
+.block details {
+  background-color: #ccc;
+  padding: 10px;
+}
+
+.block li {
+  list-style: none;
+  background-color: #fff;
+  border-radius: 5px;
+  padding: 5px;
+  margin: 5px;
 }
 
 </style>
@@ -15,6 +68,7 @@ table th, table td {
 let url = 'http://localhost:5000';
 let uuid = "";
 let chains = [];
+let money = {};
 
 let HttpClient = {
   get: function(url, param, callback) {
@@ -41,12 +95,56 @@ let HttpClient = {
   }
 }
 
+// ブロックの描画を行う
+function drawBlock() {
+  const canvas = document.getElementById('blockchain');
+  canvas.innerHTML = null;
+  for(const block of chain) {
+    const blockElem = document.createElement('div');
+    blockElem.className = "block";
+    const index = document.createElement('p');
+    index.innerText = `index: ${block.index}`;
+    const previous_hash = document.createElement('p');
+    previous_hash.innerText = `previous_hash: ${block.previous_hash}`;
+    const proof = document.createElement('p');
+    proof.innerText = `proof: ${block.proof}`;
+    const timestamp = document.createElement('p');
+    timestamp.innerText = `timestamp: ${block.timestamp}`;
+    const transactions = document.createElement('details');
+    const summary = document.createElement('summary');
+    summary.innerText = 'transactions';
+    transactions.appendChild(summary);
+    for(const transaction of block.transactions) {
+      const transactionsElem = document.createElement('li');
+      const amount = document.createElement('p');
+      amount.innerText = `amount: ${transaction.amount}`;
+      const recipient = document.createElement('p');
+      recipient.innerText = `recipient: ${transaction.recipient}`;
+      const sender = document.createElement('p');
+      sender.innerText = `sender: ${transaction.sender}`;
+      transactionsElem.appendChild(amount);
+      transactionsElem.appendChild(recipient);
+      transactionsElem.appendChild(sender);
+      transactions.appendChild(transactionsElem);
+    }
+    blockElem.appendChild(index);
+    blockElem.appendChild(previous_hash);
+    blockElem.appendChild(proof);
+    blockElem.appendChild(timestamp);
+    blockElem.appendChild(transactions);
+    console.log(block);
+    canvas.appendChild(blockElem);
+  }
+}
+
 // 状態を更新して描画に反映させる
 function refresh() {
   url = document.getElementById('myurl_text').value;
   HttpClient.get(`${url}/chain`, null, (result) => {
     let obj = JSON.parse(result);
     console.log(obj);
+    chain = obj.chain;
+    drawBlock();
   });
   HttpClient.get(`${url}/uuid`, null, (result) => {
     let obj = JSON.parse(result);
@@ -58,13 +156,16 @@ function refresh() {
     const nodes = JSON.parse(result);
     const table = document.getElementById('nodes_table')
     while (table.rows.length > 1) table.deleteRow(1);
-    for(let addr in nodes) {
-      let row = table.insertRow();
-      let cell1 = row.insertCell(-1);
-      let cell2 = row.insertCell(-1);
-      let cell3 = row.insertCell(-1);
+    for(const addr in nodes) {
+      const row = table.insertRow();
+      const cell1 = row.insertCell(-1);
+      const cell2 = row.insertCell(-1);
+      const cell3 = row.insertCell(-1);
+      const cell4 = row.insertCell(-1);
       cell1.innerText = addr;
-      cell2.innerText = nodes[addr];
+      cell2.innerText = nodes[addr].uuid;
+      cell3.innerText = nodes[addr].key;
+      cell4.innerText = money[addr];
     }
   });
 }
@@ -82,6 +183,7 @@ function makeTransaction() {
   HttpClient.post(`${url}/transactions/new`, data, (result) => {
     const obj = JSON.parse(result);
     console.log(obj);
+    refresh();
   });
 }
 
@@ -95,6 +197,7 @@ function registerNode() {
   HttpClient.post(`${url}/nodes/register`, data, (result) => {
     const obj = JSON.parse(result);
     console.log(obj);
+    refresh();
   });
 }
 
@@ -102,6 +205,7 @@ function registerNode() {
 function mining() {
   HttpClient.get(`${url}/mine`, null, (result) => {
     console.log(JSON.parse(result));
+    refresh();
   });
 }
 
@@ -109,35 +213,45 @@ function mining() {
 function sync_block() {
   HttpClient.get(`${url}/nodes/resolve`, null, (result) => {
     console.log(JSON.parse(result));
+    refresh();
   });
 }
 
 </script>
 </head>
 <body>
+  <div class="operation">
+    <p>ノードの追加</p>
+    URL: <input type="text" id="node_text"><br>
+    <input type="button" id="send_node" value="送信" onclick="registerNode()">
+  </div>
+  <div class="operation">
+    <p>トランザクションの追加</p>
+    送信先: <input type="text" id="recipient_text"><br>
+    送信量: <input type="text" id="amount_text"><br>
+    <input type="button" id="send_transaction" value="送信" onclick="makeTransaction()">
+  </div>
+  <div class="operation">
+    <p>マイニング</p>
+    <input type="button" id="send_mining" value="マイニング" onclick="mining()">
+  </div>
+  <div class="operation">
+    <p>ブロックチェーンの同期</p>
+    <input type="button" id="send_resolve" value="同期" onclick="sync_block()"><br>
+  </div>
+  
   my uuid is <span id="uuid"></span><br>
-  my url is <input type="text" id="myurl_text">
+  my url is <input type="text" id="myurl_text"><br>
+  <input type="button" id="refresh" value="更新" onclick="refresh()">
   <p>ノード一覧</p>
   <table id="nodes_table">
     <tr>
       <td>URL</td>
       <td>uuid</td>
       <td>公開鍵</td>
+      <td>所持通貨</td>
     </tr>
   </table>
-  <input type="button" id="refresh" value="更新" onclick="refresh()">
-  <p>ノードの追加</p>
-  URL: <input type="text" id="node_text"><br>
-  <input type="button" id="send_node" value="送信" onclick="registerNode()">
-  <p>トランザクションの追加</p>
-  送信先: <input type="text" id="recipient_text"><br>
-  送信量: <input type="text" id="amount_text"><br>
-  <input type="button" id="send_transaction" value="送信" onclick="makeTransaction()">
-  <p>マイニング</p>
-  <input type="button" id="send_mining" value="マイニング" onclick="mining()">
-  <p>ブロックチェーンの同期</p>
-  <input type="button" id="send_resolve" value="同期" onclick="sync_block()">
-
   <div id="blockchain"></div>
 </body>
 </html>
