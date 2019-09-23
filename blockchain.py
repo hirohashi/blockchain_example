@@ -7,79 +7,55 @@ from time import time
 from uuid import uuid4
 import requests
 from urllib.parse import urlparse
+import copy
 
 class Block(object):
     def __init__(self, index: int, timestamp: float, transactions: List['Transaction'], proof: int, previous_hash: str):
-        self._index = index
-        self._timestamp = timestamp
-        self._transactions = transactions
-        self._proof = proof
-        self._previous_hash = previous_hash
-
-    @property
-    def index(self):
-        return self._index
-
-    @property
-    def timestamp(self):
-        return self._timestamp
-
-    @property
-    def transactions(self):
-        return self._transactions
-    @property
-    def proof(self):
-        return self._proof
-    @property
-    def previous_hash(self):
-        return self._previous_hash
+        self.index = index
+        self.timestamp = timestamp
+        self.transactions = transactions
+        self.proof = proof
+        self.previous_hash = previous_hash
 
     def __iter__(self):
-        yield ("_index", self._index)
-        yield ("_timestamp", self._timestamp)
-        yield ("_transactions", list(map(lambda t: t.__dict__, self._transactions)))
-        yield ("_proof", self._proof)
-        yield ("_previous_hash", self._previous_hash)
+        yield ("index", self.index)
+        yield ("timestamp", self.timestamp)
+        yield ("transactions", list(map(lambda t: t.__dict__, self.transactions)))
+        yield ("proof", self.proof)
+        yield ("previous_hash", self.previous_hash)
 
 class Transaction(object):
     def __init__(self, sender: str, recipient: str, amount: int):
-        self._sender = sender
-        self._recipient = recipient
-        self._amount = amount
+        self.sender = sender
+        self.recipient = recipient
+        self.amount = amount
 
-    @property
-    def sender(self):
-        return self._sender
-
-    @property
-    def recipient(self):
-        return self._recipient
-
-    @property
-    def amount(self):
-        return self._amount
+    def __iter__(self):
+        yield ("sender", self.sender)
+        yield ("recipient", self.recipient)
+        yield ("amount", self.amount)
 
 class Blockchain(object):
     def __init__(self):
-        self._chain = []
-        self._current_transactions = []
-        self._nodes = {}
+        self.chain = []
+        self.current_transactions = []
+        self.nodes = {}
         self.new_block(previous_hash=1, proof=100)
 
     def new_block(self, proof: int, previous_hash: str = None):
         block = Block (
-            len(self._chain) + 1,
+            len(self.chain) + 1,
             time(),
-            self._current_transactions,
+            copy.deepcopy(self.current_transactions),
             proof,
-            previous_hash or self.hash(self._chain[-1])
+            previous_hash or self.hash(self.chain[-1])
         )
-        self._current_transations = []
-        self._chain.append(block)
+        self.current_transations = []
+        self.chain.append(block)
         return block
 
     def new_transaction(self, sender: str, recipient: str, amount: int) -> int:
-        self._current_transactions.append(
+        self.current_transactions.append(
             Transaction(sender, recipient, amount)
         )
         return self.last_block.index + 1
@@ -91,7 +67,7 @@ class Blockchain(object):
         response = requests.get(f'http://{parsed_url.netloc}/uuid')
         if response.status_code == 200:
             uuid = response.json()['uuid']
-            self._nodes[parsed_url.netloc] = uuid
+            self.nodes[parsed_url.netloc] = uuid
         else:
             raise Exception("GET uuid failed")
 
@@ -114,9 +90,12 @@ class Blockchain(object):
             print(f'{last_block}')
             print(f'{block}')
             print('\n----------------\n')
-            if block["_previous_hash"] != self.hash(last_block):
+            if block["previous_hash"] != self.hash(last_block):
+                print('bad block: invalid previous hash')
+                print(block["previous_hash"])
                 return False
-            if not self.valid_proof(last_block.proof, block.proof):
+            if not self.valid_proof(last_block["proof"], block["proof"]):
+                print('bad block: invalid proof')
                 return False
             last_block = block
             current_index += 1
@@ -135,7 +114,15 @@ class Blockchain(object):
                     max_length = length
                     new_chain = chain
         if new_chain:
-            self.chain = new_chain
+            print(f'{chain}')
+            self.chain = [
+                Block(
+                    chain["index"],
+                    chain["timestamp"],
+                    [Transaction(t["sender"], t["recipient"], t["amount"]) for t in chain["transactions"]],
+                    chain["proof"],
+                    chain["previous_hash"])
+                for chain in new_chain]
             return True
         return False
 
@@ -147,12 +134,4 @@ class Blockchain(object):
 
     @property
     def last_block(self) -> 'Block':
-        return self._chain[-1]
-
-    @property
-    def chain(self):
-        return self._chain
-
-    @property
-    def nodes(self):
-        return self._nodes
+        return self.chain[-1]
