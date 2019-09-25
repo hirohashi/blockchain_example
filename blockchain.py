@@ -8,6 +8,7 @@ from uuid import uuid4
 import requests
 from urllib.parse import urlparse
 import copy
+from util import sign
 
 class Block(object):
     def __init__(self, index: int, timestamp: float, transactions: List['Transaction'], proof: int, previous_hash: str):
@@ -28,10 +29,12 @@ class Block(object):
         yield ("previous_hash", self.previous_hash)
 
 class Transaction(object):
-    def __init__(self, sender: str, recipient: str, amount: int):
+    def __init__(self, sender: str, recipient: str, amount: int, timestamp: float, signature: str):
         self.sender = sender
         self.recipient = recipient
         self.amount = amount
+        self.timestamp = timestamp
+        self.signature = signature
 
 class Blockchain(object):
     def __init__(self):
@@ -58,7 +61,7 @@ class Blockchain(object):
         self.chain.append(block)
         return block
 
-    def new_transaction(self, sender: str, recipient: str, amount: int) -> int:
+    def new_transaction(self, sender: str, recipient: str, amount: int, timestamp: float, signature: str) -> int:
         """
         新しいトランザクションを作成し追加する
         :param sender: int
@@ -67,7 +70,7 @@ class Blockchain(object):
         :return: int 作成したトランザクションを含むブロックのアドレス
         """
         self.current_transactions.append(
-            Transaction(sender, recipient, amount)
+            Transaction(sender, recipient, amount, timestamp, signature)
         )
         return self.last_block.index + 1
 
@@ -77,6 +80,8 @@ class Blockchain(object):
         失敗したら例外を返す
         :param address
         """
+        print(address)
+        # urlのプロトコルとドメインを切り離す
         parsed_url = urlparse(address)
         self.nodes[parsed_url.netloc] = {}
         if len(parsed_url.netloc) < 1:
@@ -95,11 +100,6 @@ class Blockchain(object):
             self.nodes[parsed_url.netloc]['key'] = key
         else:
             raise Exception("GET pubkey failed")
-
-    @staticmethod
-    def hash(block) -> str:
-        block_string = json.dumps(dict(block), sort_keys=True).encode()
-        return hashlib.sha256(block_string).hexdigest()
 
     def proof_of_work(self, last_proof: int) -> int:
         """
@@ -157,12 +157,17 @@ class Blockchain(object):
                 Block(
                     chain["index"],
                     chain["timestamp"],
-                    [Transaction(t["sender"], t["recipient"], t["amount"]) for t in chain["transactions"]],
+                    [Transaction(t["sender"], t["recipient"], t["amount"], t["timestamp"], t["signature"]) for t in chain["transactions"]],
                     chain["proof"],
                     chain["previous_hash"])
                 for chain in new_chain]
             return True
         return False
+
+    @staticmethod
+    def hash(obj) -> str:
+        obj_string = json.dumps(dict(obj), sort_keys=True).encode()
+        return hashlib.sha256(obj_string).hexdigest()
 
     @staticmethod
     def valid_proof(last_proof: int, proof: int) -> bool:

@@ -10,7 +10,7 @@
 
 ## Run
 - `pipenv shell`
-- `python main.py -p <port>`
+- `python main.py --ip <ip> --port <port> --key <key's path>`
 
 
 ### New Transactions

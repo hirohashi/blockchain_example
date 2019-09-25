@@ -7,8 +7,13 @@
   margin: 0;
 }
 body {
+  background-color: #333;
+}
+#all {
   width: 1000px;
   margin: 0 auto;
+  padding: 10px;
+  background-color: #cff;
 }
 input[type=button] {
   background-color: #77aacc;
@@ -17,7 +22,7 @@ input[type=button] {
   color: white;
   padding: 10px 20px;
   text-decoration: none;
-  margin: 4px 2px;
+  margin: 10px;
   cursor: pointer;
 }
 table {
@@ -30,18 +35,34 @@ table th, table td {
   max-width: 300px;
 }
 .operation {
+  background-color: #eee;
   border: 1px #333 solid;
   border-radius: 5px;
   margin: 5px;
   padding: 5px;
+  width: 470px;
+  height: 150px;
+  float: left;
+}
+.operation p {
+  text-align: center;
+}
+#info {
+  clear: both;
+  width: 980px;
+  margin: 10px;
+}
+#info p {
+  font-size: 1.3em;
 }
 .block {
+  background-color: #eee;
   width: 300px;
   float: left;
   word-break: break-all;
   border: 1px #000 solid;
   border-radius: 5px;
-  margin: 5px;
+  margin: 30px 10px 10px 10px;
   padding: 5px;
 }
 
@@ -122,9 +143,20 @@ function drawBlock() {
       recipient.innerText = `recipient: ${transaction.recipient}`;
       const sender = document.createElement('p');
       sender.innerText = `sender: ${transaction.sender}`;
+      const timestamp = document.createElement('p');
+      timestamp.innerText = `timestamp: ${transaction.timestamp}`;
+      const signature = document.createElement('details');
+      const summary = document.createElement('summary');
+      summary.innerText = 'signature';
+      signature.appendChild(summary);
+      const signatureMessage = document.createElement('p');
+      signatureMessage.innerText = `${transaction.signature}`;
+      signature.appendChild(signatureMessage);
       transactionsElem.appendChild(amount);
       transactionsElem.appendChild(recipient);
       transactionsElem.appendChild(sender);
+      transactionsElem.appendChild(timestamp);
+      transactionsElem.appendChild(signature);
       transactions.appendChild(transactionsElem);
     }
     blockElem.appendChild(index);
@@ -152,8 +184,9 @@ function refresh() {
     uuidTextArea.innerText = obj.uuid;
     uuid = obj.uuid;
   });
-  HttpClient.get(`${url}/nodes`, null, (result) => {
-    const nodes = JSON.parse(result);
+  HttpClient.post(`${url}/refresh`, null, (result) => {
+    const obj = JSON.parse(result);
+    const nodes = obj.total_nodes;
     const table = document.getElementById('nodes_table')
     while (table.rows.length > 1) table.deleteRow(1);
     for(const addr in nodes) {
@@ -220,6 +253,7 @@ function sync_block() {
 </script>
 </head>
 <body>
+<div id="all">
   <div class="operation">
     <p>ノードの追加</p>
     URL: <input type="text" id="node_text"><br>
@@ -235,23 +269,26 @@ function sync_block() {
     <p>マイニング</p>
     <input type="button" id="send_mining" value="マイニング" onclick="mining()">
   </div>
-  <div class="operation">
+  <div class="operation last_operation">
     <p>ブロックチェーンの同期</p>
     <input type="button" id="send_resolve" value="同期" onclick="sync_block()"><br>
   </div>
-  
-  my uuid is <span id="uuid"></span><br>
-  my url is <input type="text" id="myurl_text"><br>
-  <input type="button" id="refresh" value="更新" onclick="refresh()">
-  <p>ノード一覧</p>
-  <table id="nodes_table">
-    <tr>
-      <td>URL</td>
-      <td>uuid</td>
-      <td>公開鍵</td>
-      <td>所持通貨</td>
-    </tr>
-  </table>
+  <div id="info">
+    <p>my uuid is <span id="uuid"></span></p>
+    <p>my url is <input type="text" id="myurl_text"></p>
+    <p>my moner is <span id="mymoney"></span></p>
+    <input type="button" id="refresh" value="情報の更新" onclick="refresh()">
+    <p>ノード一覧</p>
+    <table id="nodes_table">
+      <tr>
+        <td>URL</td>
+        <td>uuid</td>
+        <td>公開鍵</td>
+        <td>所持通貨</td>
+      </tr>
+    </table>
+  </div>
   <div id="blockchain"></div>
+</div>
 </body>
 </html>
