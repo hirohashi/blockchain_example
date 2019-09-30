@@ -83,12 +83,12 @@ class Blockchain(object):
         print(address)
         # urlのプロトコルとドメインを切り離す
         parsed_url = urlparse(address)
-        self.nodes[parsed_url.netloc] = {}
         if len(parsed_url.netloc) < 1:
             raise Exception("URL is invalid!")
         # uuidを取得
         response = requests.get(f'http://{parsed_url.netloc}/uuid')
         if response.status_code == 200:
+            self.nodes[parsed_url.netloc] = {}
             uuid = response.json()['uuid']
             self.nodes[parsed_url.netloc]['uuid'] = uuid
         else:
