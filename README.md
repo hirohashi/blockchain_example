@@ -9,42 +9,56 @@
 - API server for manipulating Blockchain
 
 ## Run
+
+### 環境構築
+- `pipenv install`
 - `pipenv shell`
+
+### 鍵の作成
+- `python generatekey.py`
+
+### ブロックチェーンを起動
 - `python main.py --ip <ip> --port <port> --key <key's path>`
+- 自身のIPを認識するためにIPだけちゃんと指定してあげればOK
+
+### ブロックチェーン操作
+- index.htmlを開く
+- my urlにserver.pyを起動したときのipをhttp://{ip}:{port}の形で指定する
+- 情報の更新を行う
+- ノードの追加、トランザクションの追加、マイニング、ブロックの同期などを行う
+
+### 署名検証
+- `python verify_signature.py`
+- タイムスタンプとb64エンコードされた署名を指定
 
 
-### New Transactions
+## API説明
 
-```
-curl -X POST -H "Content-Type: application/json" -d '{
- "sender": "d4ee26eee15148ee92c6cd394edd974e",
- "recipient": "someone-other-address",
- "amount": 5
-}' "http://{hostname}/transactions/new"
-```
+### /uuid
+- ユーザのuuidを返す
 
-### Register node
+### /publickey
+- ユーザの公開鍵を返す
 
-```
-curl -X POST -H "Content-Type: application/json" -d '{
-    "nodes": ["http://localhost:5001"]
-}' "http://{hostname}/nodes/register"
-```
+### /transactions/new
+- 新しいトランザクションを作成する
 
-### Resolve nodes conflict
+### /nodes
+- ノード一覧を返す
 
-```
-curl http://{hostname}/nodes/resolve
-```
+### /nodes/register
+- ノードの登録を行う
 
-### Mining
+### /refresh
+- 保持しているノードの情報を更新する
+- 他のノードからノード情報をもらう
 
-```
-curl http://{hostname}/mine
-```
+### /nodes/resolve
+- ノード間でブロックのコンフリクトを解消する
+- 最も長いブロックが適応される
 
-### Get chain
+### /mine
+- マイニングを行う
 
-```
-curl http://{hostname}/chain
-```
+### /chain
+- 現在保持しているブロック一覧を返す
