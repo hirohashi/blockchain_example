@@ -85,7 +85,6 @@ class Blockchain(object):
             ip = DNS.domain_to_ip(domain)
         except:
             ip = domain
-
         try:
             # uuidを取得
             response = requests.get(f'http://{ip}:{port}/uuid')

@@ -46,7 +46,7 @@ def getpubkey():
 @app.route('/transactions/new', methods=['POST'])
 def new_transactions():
     """
-    !! このAPIは本人しか叩けないよ !!
+    !! このAPIは本人しか叩けないで欲しい... !!
     POST /transactions/new
     新しいトランザクションを追加する
     {'sender': value, 'recipient': value, 'amount': value}
@@ -84,7 +84,6 @@ def register_nodes():
     node = values.get('node')
     if node is None:
         return "error: invalid node", 400
-    # portを分割
     try:
         domain, port = node.split(':')
         blockchain.register_node(domain, port)
@@ -102,6 +101,7 @@ def reflesh():
     """
     POST /refresh
     ノード情報を更新する
+    他ノードからノードの情報を得る
     """
     count = 0
     oldNode = copy.deepcopy(blockchain.nodes)
@@ -160,7 +160,7 @@ def mine():
     blockchain.new_transaction(
         sender = "0",
         recipient = node_identifier,
-        amount = 1,
+        amount = 100,
         timestamp = timestamp,
         signature = signature
     )
