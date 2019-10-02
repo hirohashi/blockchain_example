@@ -231,6 +231,22 @@ function drawBlock() {
   }
 }
 
+function calcMoney() {
+  money = {};
+  for(const block of chain) {
+    for(const transaction of block.transactions) {
+      if(!money[transaction.sender]) {
+        money[transaction.sender] = 0;
+      }
+      money[transaction.sender] -= transaction.amount;
+      if(!money[transaction.recipient]) {
+        money[transaction.recipient] = 0;
+      }
+      money[transaction.recipient] += transaction.amount;
+    }
+  }
+}
+
 // 状態を更新して描画に反映させる
 function refresh() {
   blockButton();
@@ -240,12 +256,15 @@ function refresh() {
     console.log(obj);
     chain = obj.chain;
     drawBlock();
+    calcMoney();
   });
   HttpClient.get(`${url}/uuid`, null, (result) => {
     let obj = JSON.parse(result);
     const uuidTextArea = document.getElementById('uuid');
     uuidTextArea.innerText = obj.uuid;
     uuid = obj.uuid;
+    const moneyTextArea = document.getElementById('mymoney');
+    moneyTextArea.innerText = money[obj.uuid];
   });
   HttpClient.post(`${url}/refresh`, null, (result) => {
     const obj = JSON.parse(result);
@@ -261,7 +280,7 @@ function refresh() {
       cell1.innerText = addr;
       cell2.innerText = nodes[addr].uuid;
       cell3.innerText = nodes[addr].key;
-      cell4.innerText = money[addr];
+      cell4.innerText = money[nodes[addr].uuid];
     }
     unblockButton();
   });
