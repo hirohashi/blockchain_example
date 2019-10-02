@@ -171,7 +171,7 @@ function drawBlock() {
 
 // 状態を更新して描画に反映させる
 function refresh() {
-  url = document.getElementById('myurl_text').value;
+  url = 'http://' + document.getElementById('myurl_text').value;
   HttpClient.get(`${url}/chain`, null, (result) => {
     let obj = JSON.parse(result);
     console.log(obj);
@@ -205,7 +205,7 @@ function refresh() {
 
 // 新しいトランザクションを作成する
 function makeTransaction() {
-  const sender = uuid;
+  const sender = document.getElementById('sender_text').value;
   const recipient = document.getElementById('recipient_text').value;
   const amount = document.getElementById('amount_text').value;
   const data = {
@@ -255,11 +255,12 @@ function sync_block() {
 <div id="all">
   <div class="operation">
     <p>ノードの追加</p>
-    URL: <input type="text" id="node_text"><br>
+    IP: <input type="text" id="node_text"><br>
     <input type="button" id="send_node" value="送信" onclick="registerNode()">
   </div>
   <div class="operation">
     <p>トランザクションの追加</p>
+    送信元: <input type="text" id="sender_text"><br>
     送信先: <input type="text" id="recipient_text"><br>
     送信量: <input type="text" id="amount_text"><br>
     <input type="button" id="send_transaction" value="送信" onclick="makeTransaction()">
@@ -273,9 +274,9 @@ function sync_block() {
     <input type="button" id="send_resolve" value="同期" onclick="sync_block()"><br>
   </div>
   <div id="info">
-    <p>my uuid is <span id="uuid"></span></p>
-    <p>my url is <input type="text" id="myurl_text"></p>
-    <p>my moner is <span id="mymoney"></span></p>
+    <p>My uuid: <span id="uuid"></span></p>
+    <p>My server IP: <input type="text" id="myurl_text"></p>
+    <p>My moner is <span id="mymoney"></span></p>
     <input type="button" id="refresh" value="情報の更新" onclick="refresh()">
     <p>ノード一覧</p>
     <table id="nodes_table">
