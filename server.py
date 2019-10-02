@@ -81,23 +81,21 @@ def register_nodes():
     新しいノードを登録する
     """
     values = request.get_json()
-    nodes = values.get('nodes')
-    if nodes is None:
+    node = values.get('node')
+    if node is None:
         return "error: invalid node", 400
-    for node in nodes:
-        # 自分自身の場合はスキップ
-        if f'{args.ip}:{args.port}' in node:
-            continue
-        try:
-            blockchain.register_node(node)
-        except Exception as err:
-            print(err)
-            return "error occured", 400
-    response = {
-        'message': 'new node registerd',
-        'total_nodes': blockchain.nodes
-    }
-    return jsonify(response), 200
+    # portを分割
+    try:
+        domain, port = node.split(':')
+        blockchain.register_node(domain, port)
+        response = {
+            'message': 'new node registerd',
+            'total_nodes': blockchain.nodes
+        }
+        return jsonify(response), 200
+    except Exception as err:
+        print(err)
+        return "error occured", 400
 
 @app.route('/refresh', methods=['POST'])
 def reflesh():

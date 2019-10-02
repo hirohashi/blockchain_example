@@ -223,9 +223,8 @@ function makeTransaction() {
 // 新しいノードを登録する
 function registerNode() {
   const node = document.getElementById('node_text').value;
-  const nodes = new Array(node);
   const data = {
-    nodes: nodes,
+    node: node,
   };
   HttpClient.post(`${url}/nodes/register`, data, (result) => {
     const obj = JSON.parse(result);

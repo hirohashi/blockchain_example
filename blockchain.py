@@ -1,5 +1,3 @@
-# coding: UTF-8
-
 from typing import List
 import hashlib
 import json
@@ -9,6 +7,7 @@ import requests
 from urllib.parse import urlparse
 import copy
 from util import sign
+from dns import DNS
 
 class Block(object):
     def __init__(self, index: int, timestamp: float, transactions: List['Transaction'], proof: int, previous_hash: str):
@@ -74,32 +73,37 @@ class Blockchain(object):
         )
         return self.last_block.index + 1
 
-    def register_node(self, address):
+    def register_node(self, domain, port):
         """
         ノードを追加する
         失敗したら例外を返す
-        :param address
+        :param ip
+        :param port
         """
-        print(address)
-        # urlのプロトコルとドメインを切り離す
-        parsed_url = urlparse(address)
-        if len(parsed_url.netloc) < 1:
-            raise Exception("URL is invalid!")
-        # uuidを取得
-        response = requests.get(f'http://{parsed_url.netloc}/uuid')
-        if response.status_code == 200:
-            self.nodes[parsed_url.netloc] = {}
-            uuid = response.json()['uuid']
-            self.nodes[parsed_url.netloc]['uuid'] = uuid
-        else:
-            raise Exception("GET uuid failed")
-        # publickeyを取得
-        response = requests.get(f'http://{parsed_url.netloc}/publickey')
-        if response.status_code == 200:
-            key = response.json()['key']
-            self.nodes[parsed_url.netloc]['key'] = key
-        else:
-            raise Exception("GET pubkey failed")
+        # 名前解決
+        try:
+            ip = DNS.domain_to_ip(domain)
+        except:
+            ip = domain
+
+        try:
+            # uuidを取得
+            response = requests.get(f'http://{ip}:{port}/uuid')
+            if response.status_code == 200:
+                self.nodes[f'{ip}:{port}'] = {}
+                uuid = response.json()['uuid']
+                self.nodes[f'{ip}:{port}']['uuid'] = uuid
+            else:
+                raise Exception("GET uuid failed")
+            # publickeyを取得
+            response = requests.get(f'http://{ip}:{port}/publickey')
+            if response.status_code == 200:
+                key = response.json()['key']
+                self.nodes[f'{ip}:{port}']['key'] = key
+            else:
+                raise Exception("GET pubkey failed")
+        except:
+            raise Exception("Cannot register node")
 
     def proof_of_work(self, last_proof: int) -> int:
         """
