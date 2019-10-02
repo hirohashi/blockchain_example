@@ -150,6 +150,7 @@ class Blockchain(object):
         neighbours = self.nodes
         new_chain = None
         max_length = len(self.chain)
+        winner_node = ""
         for node in neighbours:
             response = requests.get(f'http://{node}/chain')
             if response.status_code == 200:
@@ -158,6 +159,7 @@ class Blockchain(object):
                 if length > max_length and self.valid_chain(chain):
                     max_length = length
                     new_chain = chain
+                    winner_node = node
         if new_chain:
             print(f'{chain}')
             self.chain = [
@@ -168,6 +170,12 @@ class Blockchain(object):
                     chain["proof"],
                     chain["previous_hash"])
                 for chain in new_chain]
+            response = requests.get(f'http://{winner_node}/transactions')
+            if response.status_code == 200:
+                new_transactions = response.json()['transactions']
+                self.current_transactions = [
+                    Transaction(t["sender"], t["recipient"], t["amount"], t["timestamp"], t["signature"]) for t in new_transactions
+                ]
             return True
         return False
 

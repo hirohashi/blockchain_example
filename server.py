@@ -43,6 +43,22 @@ def getpubkey():
     """
     return jsonify({'key': publickey}), 200
 
+@app.route('/transactions', methods=['GET'])
+def get_transactions():
+    return jsonify({'transactions': list(map(lambda t: t.__dict__, blockchain.current_transactions))}), 200
+
+@app.route('/transactions/add', methods=['POST'])
+def add_transactions():
+    values = request.get_json()
+    sender = values['sender']
+    recipient = values['recipient']
+    amount = int(values['amount'])
+    timestamp = values['timestamp']
+    signature = values['signature']
+    index = blockchain.new_transaction(sender, recipient, amount, timestamp, signature)
+    result = {'message': f'transaction append {index} into block'}
+    return jsonify(result), 200
+
 @app.route('/transactions/new', methods=['POST'])
 def new_transactions():
     """
@@ -52,15 +68,19 @@ def new_transactions():
     {'sender': value, 'recipient': value, 'amount': value}
     """
     values = request.get_json()
-    required = ['sender', 'recipient', 'amount']
-    if not all(k in values for k in required):
-        return 'Missing values', 400
     timestamp = time()
     signature = sign(privatekey, timestamp)
     index = blockchain.new_transaction(values['sender'], values['recipient'], int(values['amount']), timestamp, signature)
     # 他のノードへトランザクションを共有
+    transaction = {
+        'sender': values['sender'],
+        'recipient': values['recipient'],
+        'amount': int(values['amount']),
+        'timestamp': timestamp,
+        'signature': signature,
+    }
     for node in blockchain.nodes:
-        response = requests.post(f'http://{node}/transactions/new', json=values)
+        response = requests.post(f'http://{node}/transactions/add', json=transaction)
         if response.status_code != 200:
             return 'Cannot send transaction', 500
     result = {'message': f'transaction append {index} into block'}
