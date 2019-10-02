@@ -8,7 +8,7 @@ from flask import Flask, jsonify, request
 import requests
 from base64 import b64decode, b64encode
 from flask_cors import CORS
-from blockchain import Blockchain
+from blockchain import Blockchain, Transaction
 from util import sign
 
 parser = argparse.ArgumentParser(description="blockchain example")
@@ -154,17 +154,20 @@ def mine():
     """
     last_block = blockchain.last_block
     last_proof = last_block.proof
+
+    # 現在のトランザクションを取得し，PoWを行う
+    current_transactions = copy.deepcopy(blockchain.current_transactions)
     proof = blockchain.proof_of_work(last_proof)
     timestamp = time()
     signature = sign(privatekey, timestamp)
-    blockchain.new_transaction(
-        sender = "0",
+    current_transactions.append(Transaction(
+        sender = "mining",
         recipient = node_identifier,
         amount = 100,
         timestamp = timestamp,
-        signature = signature
-    )
-    block = blockchain.new_block(proof)
+        signature = signature,
+    ))
+    block = blockchain.new_block(proof, current_transactions)
     response = {
         'message': 'new block mining!!',
         'index': block.index,
