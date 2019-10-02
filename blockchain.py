@@ -40,10 +40,14 @@ class Blockchain(object):
         self.chain = []
         self.current_transactions = []
         self.nodes = {}
-        self.new_block(previous_hash=1, proof=100)
+        self.new_block(
+            previous_hash = 1,
+            transactions = self.current_transactions,
+            proof=100
+        )
 
 
-    def new_block(self, proof: int, previous_hash: str = None):
+    def new_block(self, proof: int, transactions: List['Transaction'], previous_hash: str = None):
         """
         新しいブロックを作成して追加する
         :param proof: int
@@ -52,7 +56,7 @@ class Blockchain(object):
         block = Block (
             len(self.chain) + 1,
             time(),
-            self.current_transactions,
+            transactions,
             proof,
             previous_hash or self.hash(self.chain[-1])
         )
@@ -182,7 +186,7 @@ class Blockchain(object):
         """
         guess = f'{last_proof}{proof}'.encode()
         guess_hash = hashlib.sha256(guess).hexdigest()
-        return guess_hash[:5] == "00000"
+        return guess_hash[:10] < "0000030000"
 
     @property
     def last_block(self) -> 'Block':
