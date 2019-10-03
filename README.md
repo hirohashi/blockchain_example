@@ -39,6 +39,12 @@
 ### /publickey
 - ユーザの公開鍵を返す
 
+### /transactions
+- トランザクション一覧を取得
+
+### /transactions/add
+- 既存のトランザクションを追加する
+
 ### /transactions/new
 - 新しいトランザクションを作成する
 
