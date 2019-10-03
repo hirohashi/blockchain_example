@@ -8,12 +8,12 @@ from flask import Flask, jsonify, request
 import requests
 from base64 import b64decode, b64encode
 from flask_cors import CORS
-from blockchain import Blockchain
+from blockchain import Blockchain, Transaction
 from util import sign
 
 parser = argparse.ArgumentParser(description="blockchain example")
-parser.add_argument('--ip', type=str, default="0.0.0.0")
-parser.add_argument('--port', type=int, default=5000)
+parser.add_argument('ip', type=str)
+parser.add_argument('port', type=int)
 parser.add_argument('--key', type=str, default="key.pem")
 args = parser.parse_args()
 
@@ -43,6 +43,22 @@ def getpubkey():
     """
     return jsonify({'key': publickey}), 200
 
+@app.route('/transactions', methods=['GET'])
+def get_transactions():
+    return jsonify({'transactions': list(map(lambda t: t.__dict__, blockchain.current_transactions))}), 200
+
+@app.route('/transactions/add', methods=['POST'])
+def add_transactions():
+    values = request.get_json()
+    sender = values['sender']
+    recipient = values['recipient']
+    amount = int(values['amount'])
+    timestamp = values['timestamp']
+    signature = values['signature']
+    index = blockchain.new_transaction(sender, recipient, amount, timestamp, signature)
+    result = {'message': f'transaction append {index} into block'}
+    return jsonify(result), 200
+
 @app.route('/transactions/new', methods=['POST'])
 def new_transactions():
     """
@@ -52,15 +68,19 @@ def new_transactions():
     {'sender': value, 'recipient': value, 'amount': value}
     """
     values = request.get_json()
-    required = ['sender', 'recipient', 'amount']
-    if not all(k in values for k in required):
-        return 'Missing values', 400
     timestamp = time()
     signature = sign(privatekey, timestamp)
     index = blockchain.new_transaction(values['sender'], values['recipient'], int(values['amount']), timestamp, signature)
     # 他のノードへトランザクションを共有
+    transaction = {
+        'sender': values['sender'],
+        'recipient': values['recipient'],
+        'amount': int(values['amount']),
+        'timestamp': timestamp,
+        'signature': signature,
+    }
     for node in blockchain.nodes:
-        response = requests.post(f'http://{node}/transactions/new', json=values)
+        response = requests.post(f'http://{node}/transactions/add', json=transaction)
         if response.status_code != 200:
             return 'Cannot send transaction', 500
     result = {'message': f'transaction append {index} into block'}
@@ -154,17 +174,20 @@ def mine():
     """
     last_block = blockchain.last_block
     last_proof = last_block.proof
+
+    # 現在のトランザクションを取得し，PoWを行う
+    current_transactions = copy.deepcopy(blockchain.current_transactions)
     proof = blockchain.proof_of_work(last_proof)
     timestamp = time()
     signature = sign(privatekey, timestamp)
-    blockchain.new_transaction(
-        sender = "0",
+    current_transactions.append(Transaction(
+        sender = "mining",
         recipient = node_identifier,
         amount = 100,
         timestamp = timestamp,
-        signature = signature
-    )
-    block = blockchain.new_block(proof)
+        signature = signature,
+    ))
+    block = blockchain.new_block(proof, current_transactions)
     response = {
         'message': 'new block mining!!',
         'index': block.index,

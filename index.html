@@ -25,6 +25,9 @@ input[type=button] {
   margin: 10px;
   cursor: pointer;
 }
+input[type=button]:disabled {
+  background-color: #777;
+}
 table {
   word-break: break-all;
   border-collapse: collapse;
@@ -85,6 +88,46 @@ table th, table td {
 }
 
 </style>
+</head>
+<body>
+<div id="all">
+  <div class="operation">
+    <p>ノードの追加</p>
+    IP: <input type="text" id="node_text"><br>
+    <input type="button" id="send_node" value="送信" onclick="registerNode()">
+  </div>
+  <div class="operation">
+    <p>トランザクションの追加</p>
+    送信元: <input type="text" id="sender_text"><br>
+    送信先: <input type="text" id="recipient_text"><br>
+    送信量: <input type="text" id="amount_text"><br>
+    <input type="button" id="send_transaction" value="送信" onclick="makeTransaction()">
+  </div>
+  <div class="operation">
+    <p>マイニング</p>
+    <input type="button" id="send_mining" value="マイニング" onclick="mining()">
+  </div>
+  <div class="operation last_operation">
+    <p>ブロックチェーンの同期</p>
+    <input type="button" id="send_resolve" value="同期" onclick="sync_block()"><br>
+  </div>
+  <div id="info">
+    <p>My uuid: <span id="uuid"></span></p>
+    <p>My server IP: <input type="text" id="myurl_text"></p>
+    <p>My moner is <span id="mymoney"></span></p>
+    <input type="button" id="send_refresh" value="情報の更新" onclick="refresh()">
+    <p>ノード一覧</p>
+    <table id="nodes_table">
+      <tr>
+        <td>URL</td>
+        <td>uuid</td>
+        <td>公開鍵</td>
+        <td>所持通貨</td>
+      </tr>
+    </table>
+  </div>
+  <div id="blockchain"></div>
+</div>
 <script>
 let url = 'http://localhost:5000';
 let uuid = "";
@@ -113,6 +156,25 @@ let HttpClient = {
     xhr.open( "POST", url, true );   
     xhr.setRequestHeader("Content-Type", "application/json");         
     xhr.send(JSON.stringify(data));
+  }
+}
+
+let buttons = [
+  document.getElementById('send_node'),
+  document.getElementById('send_transaction'),
+  document.getElementById('send_mining'),
+  document.getElementById('send_resolve'),
+  document.getElementById('send_refresh'),
+];
+function unblockButton() {
+  for(const button of buttons) {
+    button.disabled = false;
+  }
+}
+
+function blockButton() {
+  for(const button of buttons) {
+    button.disabled = true;
   }
 }
 
@@ -169,20 +231,40 @@ function drawBlock() {
   }
 }
 
+function calcMoney() {
+  money = {};
+  for(const block of chain) {
+    for(const transaction of block.transactions) {
+      if(!money[transaction.sender]) {
+        money[transaction.sender] = 0;
+      }
+      money[transaction.sender] -= transaction.amount;
+      if(!money[transaction.recipient]) {
+        money[transaction.recipient] = 0;
+      }
+      money[transaction.recipient] += transaction.amount;
+    }
+  }
+}
+
 // 状態を更新して描画に反映させる
 function refresh() {
-  url = document.getElementById('myurl_text').value;
+  blockButton();
+  url = 'http://' + document.getElementById('myurl_text').value;
   HttpClient.get(`${url}/chain`, null, (result) => {
     let obj = JSON.parse(result);
     console.log(obj);
     chain = obj.chain;
     drawBlock();
+    calcMoney();
   });
   HttpClient.get(`${url}/uuid`, null, (result) => {
     let obj = JSON.parse(result);
     const uuidTextArea = document.getElementById('uuid');
     uuidTextArea.innerText = obj.uuid;
     uuid = obj.uuid;
+    const moneyTextArea = document.getElementById('mymoney');
+    moneyTextArea.innerText = money[obj.uuid];
   });
   HttpClient.post(`${url}/refresh`, null, (result) => {
     const obj = JSON.parse(result);
@@ -198,14 +280,16 @@ function refresh() {
       cell1.innerText = addr;
       cell2.innerText = nodes[addr].uuid;
       cell3.innerText = nodes[addr].key;
-      cell4.innerText = money[addr];
+      cell4.innerText = money[nodes[addr].uuid];
     }
+    unblockButton();
   });
 }
 
 // 新しいトランザクションを作成する
 function makeTransaction() {
-  const sender = uuid;
+  blockButton();
+  const sender = document.getElementById('sender_text').value;
   const recipient = document.getElementById('recipient_text').value;
   const amount = document.getElementById('amount_text').value;
   const data = {
@@ -222,6 +306,7 @@ function makeTransaction() {
 
 // 新しいノードを登録する
 function registerNode() {
+  blockButton();
   const node = document.getElementById('node_text').value;
   const data = {
     node: node,
@@ -235,59 +320,24 @@ function registerNode() {
 
 // マイニングをする
 function mining() {
+  blockButton();
   HttpClient.get(`${url}/mine`, null, (result) => {
     console.log(JSON.parse(result));
     refresh();
+    unblockButton();
   });
 }
 
 // ノード間でブロックチェーンの同期を行う
 function sync_block() {
+  blockButton();
   HttpClient.get(`${url}/nodes/resolve`, null, (result) => {
     console.log(JSON.parse(result));
     refresh();
+    unblockButton();
   });
 }
 
 </script>
-</head>
-<body>
-<div id="all">
-  <div class="operation">
-    <p>ノードの追加</p>
-    URL: <input type="text" id="node_text"><br>
-    <input type="button" id="send_node" value="送信" onclick="registerNode()">
-  </div>
-  <div class="operation">
-    <p>トランザクションの追加</p>
-    送信先: <input type="text" id="recipient_text"><br>
-    送信量: <input type="text" id="amount_text"><br>
-    <input type="button" id="send_transaction" value="送信" onclick="makeTransaction()">
-  </div>
-  <div class="operation">
-    <p>マイニング</p>
-    <input type="button" id="send_mining" value="マイニング" onclick="mining()">
-  </div>
-  <div class="operation last_operation">
-    <p>ブロックチェーンの同期</p>
-    <input type="button" id="send_resolve" value="同期" onclick="sync_block()"><br>
-  </div>
-  <div id="info">
-    <p>my uuid is <span id="uuid"></span></p>
-    <p>my url is <input type="text" id="myurl_text"></p>
-    <p>my moner is <span id="mymoney"></span></p>
-    <input type="button" id="refresh" value="情報の更新" onclick="refresh()">
-    <p>ノード一覧</p>
-    <table id="nodes_table">
-      <tr>
-        <td>URL</td>
-        <td>uuid</td>
-        <td>公開鍵</td>
-        <td>所持通貨</td>
-      </tr>
-    </table>
-  </div>
-  <div id="blockchain"></div>
-</div>
 </body>
 </html>

@@ -129,9 +129,14 @@ class DNS():
         BUFFER = 1024
         query = dns.to_bytes()
         client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # internet, udp
-        client.sendto(query, dns.address)
-        data, address = client.recvfrom(BUFFER)
-        
+        try:
+            client.settimeout(2)
+            client.sendto(query, dns.address)
+            data, address = client.recvfrom(BUFFER)
+            client.close()
+        except socket.timeout:
+            client.close()
+            raise Exception('DNS timeout.')
         # get answer
         rcode = data[3] & 0xf
         if rcode == 0:

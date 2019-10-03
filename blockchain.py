@@ -40,10 +40,14 @@ class Blockchain(object):
         self.chain = []
         self.current_transactions = []
         self.nodes = {}
-        self.new_block(previous_hash=1, proof=100)
+        self.new_block(
+            previous_hash = 1,
+            transactions = self.current_transactions,
+            proof=100
+        )
 
 
-    def new_block(self, proof: int, previous_hash: str = None):
+    def new_block(self, proof: int, transactions: List['Transaction'], previous_hash: str = None):
         """
         新しいブロックを作成して追加する
         :param proof: int
@@ -52,7 +56,7 @@ class Blockchain(object):
         block = Block (
             len(self.chain) + 1,
             time(),
-            self.current_transactions,
+            transactions,
             proof,
             previous_hash or self.hash(self.chain[-1])
         )
@@ -146,6 +150,7 @@ class Blockchain(object):
         neighbours = self.nodes
         new_chain = None
         max_length = len(self.chain)
+        winner_node = ""
         for node in neighbours:
             response = requests.get(f'http://{node}/chain')
             if response.status_code == 200:
@@ -154,6 +159,7 @@ class Blockchain(object):
                 if length > max_length and self.valid_chain(chain):
                     max_length = length
                     new_chain = chain
+                    winner_node = node
         if new_chain:
             print(f'{chain}')
             self.chain = [
@@ -164,6 +170,12 @@ class Blockchain(object):
                     chain["proof"],
                     chain["previous_hash"])
                 for chain in new_chain]
+            response = requests.get(f'http://{winner_node}/transactions')
+            if response.status_code == 200:
+                new_transactions = response.json()['transactions']
+                self.current_transactions = [
+                    Transaction(t["sender"], t["recipient"], t["amount"], t["timestamp"], t["signature"]) for t in new_transactions
+                ]
             return True
         return False
 
@@ -182,7 +194,7 @@ class Blockchain(object):
         """
         guess = f'{last_proof}{proof}'.encode()
         guess_hash = hashlib.sha256(guess).hexdigest()
-        return guess_hash[:5] == "00000"
+        return guess_hash[:10] < "0000030000"
 
     @property
     def last_block(self) -> 'Block':
