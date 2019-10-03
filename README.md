@@ -18,7 +18,7 @@
 - `python generatekey.py`
 
 ### ブロックチェーンを起動
-- `python server.py <ip> <port>`
+- `python ./core/server.py <ip> <port>`
 
 ### ブロックチェーン操作
 - index.htmlを開く
