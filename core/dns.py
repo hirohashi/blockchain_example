@@ -63,7 +63,7 @@ class DNSHeader():
         result.append(self.arcount & 0xff)
         return bytes(result)
 
-class QuerySection():
+class QuestionSection():
     def __init__(self, domain, dtype, dclass):
         self.domains = domain.split(".")
         self.dtype = dtype
@@ -99,51 +99,28 @@ class DNS():
 
     @staticmethod
     def domain_to_ip(domain):
-        # make packet
-        flags = DNSFlags(
-            qr = 0, # 問い合わせ=0, 応答=1
-            opcode = 0, # 問い合わせ=0, notify=4, update=5
-            aa = 0, # 管理権限の応答=1
-            tc = 0, # 応答が切り詰められた=1
-            rd = 1, # 名前解決するかどうか
-            ra = 0, # 名前解決可能=1, 非サポート=0
-            z = 0, # 予約（常に0)
-            ad = 0, # 問い合わせの際に応答のadが理解できる=1, 応答の際DNSSECの検証が成功=1
-            cd = 0, # 問い合わせの際，DNSSECの検証を無効=1
-            rcode = 0 # 応答コード(NOERROR, SERVFAIL, NXDOMAIN, REFUSED)
-        )
-        header = DNSHeader(
-            flags = flags,
-            qdcount = 1, # 問い合わせセクション数
-            ancount = 0, nscount = 0, arcount = 0
-        )
-        sections = []
-        sections.append(QuerySection(
-            domain = domain,
-            dtype = 1, # A record = 0x0001
-            dclass = 1, # IN = 0x0001
-        ))
-        dns = DNS(header, sections)
+        raise Exception('not implmented')
 
-        # communicate
-        BUFFER = 1024
-        query = dns.to_bytes()
-        client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # internet, udp
-        try:
-            client.settimeout(2)
-            client.sendto(query, dns.address)
-            data, address = client.recvfrom(BUFFER)
-            client.close()
-        except socket.timeout:
-            client.close()
-            raise Exception('DNS timeout.')
-        # get answer
-        rcode = data[3] & 0xf
-        if rcode == 0:
-            answer = data[len(query)+12:len(query)+16]
-            return "%d.%d.%d.%d" % (answer[0], answer[1], answer[2], answer[3])
-        else:
-            raise Exception('error code %d: cannot resolve domain. ' % rcode) 
     @staticmethod
     def ip_to_domain():
-        pass
+        raise Exception('not implemented')
+
+def communicate(query):
+    """
+    クエリの送信と応答結果の受信
+    :param query バイト配列
+    :param address (送信先のアドレス, ポート番号)
+    :return 受信したバイト配列
+    """
+    BUFFER = 1024
+    client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # internet, udp
+    try:
+        client.settimeout(2)
+        client.sendto(query, address)
+        data, address = client.recvfrom(BUFFER)
+        client.close()
+        return data
+    except socket.timeout:
+        client.close()
+        raise Exception('DNS timeout.')
+

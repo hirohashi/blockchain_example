@@ -63,7 +63,7 @@ class DNSHeader():
         result.append(self.arcount & 0xff)
         return bytes(result)
 
-class QuerySection():
+class QuestionSection():
     def __init__(self, domain, dtype, dclass):
         self.domains = domain.split(".")
         self.dtype = dtype
@@ -118,7 +118,7 @@ class DNS():
             ancount = 0, nscount = 0, arcount = 0
         )
         sections = []
-        sections.append(QuerySection(
+        sections.append(QuestionSection(
             domain = domain,
             dtype = 1, # A record = 0x0001
             dclass = 1, # IN = 0x0001
@@ -126,17 +126,12 @@ class DNS():
         dns = DNS(header, sections)
 
         # communicate
-        BUFFER = 1024
         query = dns.to_bytes()
-        client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # internet, udp
         try:
-            client.settimeout(2)
-            client.sendto(query, dns.address)
-            data, address = client.recvfrom(BUFFER)
-            client.close()
-        except socket.timeout:
-            client.close()
-            raise Exception('DNS timeout.')
+            data = communicate(query, dns.address)
+        except Exception as err:
+            raise err
+
         # get answer
         rcode = data[3] & 0xf
         if rcode == 0:
@@ -147,3 +142,22 @@ class DNS():
     @staticmethod
     def ip_to_domain():
         pass
+
+def communicate(query):
+    """
+    クエリの送信と応答結果の受信
+    :param query バイト配列
+    :param address (送信先のアドレス, ポート番号)
+    :return 受信したバイト配列
+    """
+    BUFFER = 1024
+    client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # internet, udp
+    try:
+        client.settimeout(2)
+        client.sendto(query, address)
+        data, address = client.recvfrom(BUFFER)
+        client.close()
+        return data
+    except socket.timeout:
+        client.close()
+        raise Exception('DNS timeout.')
