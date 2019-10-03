@@ -12,8 +12,8 @@ from blockchain import Blockchain, Transaction
 from util import sign
 
 parser = argparse.ArgumentParser(description="blockchain example")
-parser.add_argument('--ip', type=str, default="0.0.0.0")
-parser.add_argument('--port', type=int, default=5000)
+parser.add_argument('ip', type=str)
+parser.add_argument('port', type=int)
 parser.add_argument('--key', type=str, default="key.pem")
 args = parser.parse_args()
 

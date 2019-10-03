@@ -18,8 +18,7 @@
 - `python generatekey.py`
 
 ### ブロックチェーンを起動
-- `python main.py --ip <ip> --port <port> --key <key's path>`
-- 自身のIPを認識するためにIPだけちゃんと指定してあげればOK
+- `python main.py <ip> <port>`
 
 ### ブロックチェーン操作
 - index.htmlを開く
