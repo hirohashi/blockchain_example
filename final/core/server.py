@@ -9,7 +9,7 @@ import requests
 from base64 import b64decode, b64encode
 from flask_cors import CORS
 from blockchain import Blockchain, Transaction
-from util import sign
+from util import sign, verify
 
 parser = argparse.ArgumentParser(description="blockchain example")
 parser.add_argument('ip', type=str)
@@ -212,10 +212,13 @@ def full_chain():
 @app.route('/verify_signature', methods=['GET'])
 def verify_signature():
     signature = request.args.get('signature')
-    sender_ip = request.args.get('senderIp')
     sender_pubkey = request.args.get('publickey')
     timestamp = request.args.get('timestamp')
-    return jsonify("not implemented"), 200
+    result = verify(sender_pubkey, timestamp, signature)
+    if result:
+        return jsonify("Verified"), 200
+    else:
+        return jsonify("Not Verified"), 400
 
 if __name__ == '__main__':
     print(node_identifier)

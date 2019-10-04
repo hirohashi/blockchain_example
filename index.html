@@ -113,6 +113,7 @@ table th, table td {
   </div>
   <div id="info">
     <p>My uuid: <span id="uuid"></span></p>
+    <p>My pubkey: <span id="pubkey"></span></p>
     <p>My server IP: <input type="text" id="myurl_text"></p>
     <p>My moner is <span id="mymoney"></span></p>
     <input type="button" id="send_refresh" value="情報の更新" onclick="refresh()">
@@ -131,6 +132,7 @@ table th, table td {
 <script>
 let url = 'http://localhost:5000';
 let uuid = "";
+let pubkey = "";
 let chains = [];
 let nodes = [];
 let money = {};
@@ -273,20 +275,21 @@ function verifySignature(e) {
   const timestamp = e.target.dataset.timestamp;
   const sender = e.target.dataset.sender;
   let publickey = "";
-  let senderIp = "";
-  for(addr in nodes) {
-    if(nodes[addr].uuid == sender) {
-      publickey = nodes[addr].key;
-      senderIp = addr;
-      break;
+  if(uuid == sender) {
+    publickey = pubkey;
+  } else {
+    for(addr in nodes) {
+      if(nodes[addr].uuid == sender) {
+        publickey = nodes[addr].key;
+        break;
+      }
     }
   }
-  if(senderIp == "") {
+  if(publickey == "") {
     alert("ノードが存在しません");
     return;
   }
   const data = {
-    senderIp: senderIp,
     publickey: publickey,
     signature: signature,
     timestamp: timestamp,
@@ -315,6 +318,12 @@ function refresh() {
     uuid = obj.uuid;
     const moneyTextArea = document.getElementById('mymoney');
     moneyTextArea.innerText = money[obj.uuid];
+  });
+  HttpClient.get(`${url}/publickey`, null, (result) => {
+    let obj = JSON.parse(result);
+    const pubkeyTextArea = document.getElementById('pubkey');
+    pubkeyTextArea.innerText = obj.key;
+    pubkey = obj.key;
   });
   HttpClient.post(`${url}/refresh`, null, (result) => {
     const obj = JSON.parse(result);
