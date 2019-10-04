@@ -179,6 +179,7 @@ def mine():
     proof = blockchain.proof_of_work(last_proof)
     timestamp = time()
     signature = sign(privatekey, timestamp)
+    # マイニング用のトランザクションを追加
     current_transactions.append(Transaction(
         sender = "mining",
         recipient = node_identifier,

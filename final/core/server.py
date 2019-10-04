@@ -218,7 +218,7 @@ def verify_signature():
     if result:
         return jsonify("Verified"), 200
     else:
-        return jsonify("Not Verified"), 400
+        return jsonify("Not Verified"), 200
 
 if __name__ == '__main__':
     print(node_identifier)
