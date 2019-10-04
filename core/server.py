@@ -78,10 +78,7 @@ def new_transactions():
         'timestamp': timestamp,
         'signature': signature,
     }
-    for node in blockchain.nodes:
-        response = requests.post(f'http://{node}/transactions/add', json=transaction)
-        if response.status_code != 200:
-            return 'Cannot send transaction', 500
+    # 未実装 /transactions/add を叩く
     result = {'message': f'transaction append {index} into block'}
     return jsonify(result), 200
 
@@ -115,10 +112,10 @@ def register_nodes():
         print(err)
         return "error occured", 400
 
-@app.route('/refresh', methods=['POST'])
+@app.route('/get_other_nodes', methods=['POST'])
 def reflesh():
     """
-    POST /refresh
+    POST /get_other_nodes
     ノード情報を更新する
     他ノードからノードの情報を得る
     """
@@ -127,16 +124,8 @@ def reflesh():
     for node in oldNode:
         response = requests.get(f'http://{node}/nodes')
         if response.status_code == 200:
-            others = response.json()
-            for other in others:
-                if f'{args.ip}:{args.port}' in other:
-                    continue
-                try:
-                    blockchain.register_node(f'http://{other}')
-                    count += 1
-                except Exception as err:
-                    print(err)
-                    return "error occured", 400
+            # 知らないノードがあったら加える
+            # 未実装
         else:
             return "cannot get other nodes", 500
     response = {

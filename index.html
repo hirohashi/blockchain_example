@@ -325,7 +325,7 @@ function refresh() {
     pubkeyTextArea.innerText = obj.key;
     pubkey = obj.key;
   });
-  HttpClient.post(`${url}/refresh`, null, (result) => {
+  HttpClient.post(`${url}/get_other_nodes`, null, (result) => {
     const obj = JSON.parse(result);
     nodes = obj.total_nodes;
     const table = document.getElementById('nodes_table')

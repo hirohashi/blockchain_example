@@ -115,10 +115,10 @@ def register_nodes():
         print(err)
         return "error occured", 400
 
-@app.route('/refresh', methods=['POST'])
+@app.route('/get_other_nodes', methods=['POST'])
 def reflesh():
     """
-    POST /refresh
+    POST /get_other_nodes
     ノード情報を更新する
     他ノードからノードの情報を得る
     """
