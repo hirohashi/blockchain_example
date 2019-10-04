@@ -114,10 +114,7 @@ class Blockchain(object):
         :param last_proof: int 最後のブロックのproof
         :return:int 計算したproofの値
         """
-        proof = 0
-        while self.valid_proof(last_proof, proof) is False:
-            proof += 1
-        return proof
+        return 0
 
     def valid_chain(self, chain: List["Block"]) -> bool:
         """
