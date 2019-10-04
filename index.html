@@ -132,18 +132,26 @@ table th, table td {
 let url = 'http://localhost:5000';
 let uuid = "";
 let chains = [];
+let nodes = [];
 let money = {};
 
 let HttpClient = {
-  get: function(url, param, callback) {
+  get: function(url, data, callback) {
     var xhr = new XMLHttpRequest();
     xhr.onreadystatechange = function() {
       // done & OK
       if (xhr.readyState == 4 && xhr.status == 200)
         callback(xhr.responseText);
     }
-    xhr.open( "GET", url, true );            
-    xhr.send( param );
+    let param = "";
+    for (const key in data) {
+        if (param != "") {
+          param += "&";
+        }
+        param += key + "=" + encodeURIComponent(data[key]);
+    } 
+    xhr.open("GET", `${url}?${param}`, true );    
+    xhr.send();
   },
   post: function(url, data, callback) {
     var xhr = new XMLHttpRequest();
@@ -166,12 +174,13 @@ let buttons = [
   document.getElementById('send_resolve'),
   document.getElementById('send_refresh'),
 ];
+// ボタンのdisabledを解除
 function unblockButton() {
   for(const button of buttons) {
     button.disabled = false;
   }
 }
-
+// ボタンのdisabledに
 function blockButton() {
   for(const button of buttons) {
     button.disabled = true;
@@ -219,6 +228,16 @@ function drawBlock() {
       transactionsElem.appendChild(sender);
       transactionsElem.appendChild(timestamp);
       transactionsElem.appendChild(signature);
+      // 検証ボタンの追加
+      const verifyButton = document.createElement('input');
+      verifyButton.type = "button";
+      verifyButton.value = "検証する";
+      verifyButton.dataset.signature = transaction.signature;
+      verifyButton.dataset.timestamp = transaction.timestamp;
+      verifyButton.dataset.sender = transaction.sender;
+      verifyButton.addEventListener('click', verifySignature, false);
+      transactionsElem.appendChild(verifyButton);
+
       transactions.appendChild(transactionsElem);
     }
     blockElem.appendChild(index);
@@ -231,6 +250,7 @@ function drawBlock() {
   }
 }
 
+// お金の計算
 function calcMoney() {
   money = {};
   for(const block of chain) {
@@ -245,6 +265,36 @@ function calcMoney() {
       money[transaction.recipient] += transaction.amount;
     }
   }
+}
+
+// 署名の検証
+function verifySignature(e) {
+  const signature = e.target.dataset.signature;
+  const timestamp = e.target.dataset.timestamp;
+  const sender = e.target.dataset.sender;
+  let publickey = "";
+  let senderIp = "";
+  for(addr in nodes) {
+    if(nodes[addr].uuid == sender) {
+      publickey = nodes[addr].key;
+      senderIp = addr;
+      break;
+    }
+  }
+  if(senderIp == "") {
+    alert("ノードが存在しません");
+    return;
+  }
+  const data = {
+    senderIp: senderIp,
+    publickey: publickey,
+    signature: signature,
+    timestamp: timestamp,
+  };
+  HttpClient.get(`${url}/verify_signature`, data, (result) => {
+    let obj = JSON.parse(result);
+    alert(obj);
+  });
 }
 
 // 状態を更新して描画に反映させる
@@ -268,7 +318,7 @@ function refresh() {
   });
   HttpClient.post(`${url}/refresh`, null, (result) => {
     const obj = JSON.parse(result);
-    const nodes = obj.total_nodes;
+    nodes = obj.total_nodes;
     const table = document.getElementById('nodes_table')
     while (table.rows.length > 1) table.deleteRow(1);
     for(const addr in nodes) {

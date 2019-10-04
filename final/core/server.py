@@ -209,6 +209,14 @@ def full_chain():
     }
     return jsonify(response), 200
 
+@app.route('/verify_signature', methods=['GET'])
+def verify_signature():
+    signature = request.args.get('signature')
+    sender_ip = request.args.get('senderIp')
+    sender_pubkey = request.args.get('publickey')
+    timestamp = request.args.get('timestamp')
+    return jsonify("not implemented"), 200
+
 if __name__ == '__main__':
     print(node_identifier)
     app.run(host=args.ip, port=args.port)
