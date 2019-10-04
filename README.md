@@ -22,13 +22,9 @@
 
 ### ブロックチェーン操作
 - index.htmlを開く
-- my urlにserver.pyを起動したときのipをhttp://{ip}:{port}の形で指定する
+- my server IPにserver.pyを起動したときのipを{ip}:{port}の形で指定する
 - 情報の更新を行う
 - ノードの追加、トランザクションの追加、マイニング、ブロックの同期などを行う
-
-### 署名検証
-- `python verify_signature.py`
-- タイムスタンプとb64エンコードされた署名を指定
 
 
 ## API説明
