@@ -72,9 +72,9 @@ class QuestionSection():
     def to_bytes(self):
         result = bytearray()
         for domain in self.domains:
-            result.append(len(domain))
+            result.append(len(domain)) # ドメインの長さを格納
             for b in bytes(domain.encode()):
-                result.append(b)
+                result.append(b) # ドメインを追加
         result.append(0) # 終端文字
         result.append((self.dtype >> 8) & 0xff)
         result.append(self.dtype & 0xff)
