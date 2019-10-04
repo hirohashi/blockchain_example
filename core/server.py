@@ -212,8 +212,11 @@ def full_chain():
 
 @app.route('/verify_signature', methods=['GET'])
 def verify_signature():
+    """
+    GET /verify_signature?signature&sender_pubkey&timestamp
+    署名の検証を行う
+    """
     signature = request.args.get('signature')
-    sender_ip = request.args.get('senderIp')
     sender_pubkey = request.args.get('publickey')
     timestamp = request.args.get('timestamp')
     return jsonify("not implemented"), 200
